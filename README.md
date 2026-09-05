@@ -53,7 +53,7 @@ Open the local URL displayed by Vite.
 Before running the backend or frontend, create a .env file in the project root (outside both the backend and frontend folders). This file holds the API keys shared across the project, such as Simli and Groq:
 
 powershell
-# From the project root
+From the project root
 New-Item .env -ItemType File
 
 Add the following keys to the root .env file:
