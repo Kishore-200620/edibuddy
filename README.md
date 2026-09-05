@@ -52,6 +52,8 @@ Open the local URL displayed by Vite.
 
 The architecture diagram is stored directly inside this repository.
 
+![EdiBuddy Architecture](architecture.png)
+
 ## How EdiBuddy Works
 
 EdiBuddy follows an adaptive AI teaching loop:
@@ -81,8 +83,9 @@ EdiBuddy follows an adaptive AI teaching loop:
 - PostgreSQL
 - pgvector
 - RAG (Retrieval-Augmented Generation)
+- LLM-->DEFAULT_MODEL = "openai/gpt-oss-120b"
 - PyPDF
-- Embeddings
+- Embeddings-->MODEL_NAME = "all-MiniLM-L6-v2"
 - Edge TTS
 - Simli WebRTC
 - Pydantic
