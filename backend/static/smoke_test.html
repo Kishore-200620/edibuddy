@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>EDUVA Phase 23 Smoke Test</title>
+    <style>
+        body { font-family: sans-serif; padding: 2rem; max-width: 800px; margin: auto; }
+        .controls { margin-top: 1rem; padding: 1rem; background: #eee; border-radius: 8px; }
+        button { padding: 0.5rem 1rem; margin-right: 1rem; cursor: pointer; }
+        video { background: #000; width: 100%; height: auto; aspect-ratio: 16/9; margin-top: 1rem; border-radius: 8px; }
+    </style>
+    <script type="module" crossorigin src="/static/assets/index-MEbOzO7_.js"></script>
+  </head>
+  <body>
+    <h1>Simli WebRTC Smoke Test</h1>
+    <p>Status: <span id="status">Idle</span></p>
+
+    <div class="controls">
+        <button id="startBtn">1. Start Session (WebRTC)</button>
+        <hr>
+        <button id="btnFallbackOnly">Test Fallback Audio</button>
+        <button id="btnWebAudioOnly">Test WebAudio Direct</button>
+        <button id="playBtn">Test Simli PCM Transmission</button>
+    </div>
+
+    <div id="diagnosticLog" style="background:#000; color:#0f0; font-family:monospace; padding:10px; height:200px; overflow-y:auto; margin-top:10px;"></div>
+
+    <!-- Simli requires both video and audio elements -->
+    <video id="simliVideo" autoplay playsinline></video>
+    <audio id="simliAudio" autoplay></audio>
+
+    <!-- Fallback / Source audio. Wait, I should make sure there's an actual audio source here -->
+    <!-- For testing purposes, we can use a dummy local audio file or fetch a generic one if /voice is mocked. -->
+    <audio id="fallbackAudio" src="/voice/audio/test_teacher.mp3"></audio>
+
+  </body>
+</html>

@@ -1,0 +1,123 @@
+# ==============================
+# Python
+# ==============================
+
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+backend/storage/audio/*
+!backend/storage/audio/.gitkeep
+
+# Python environment files
+.env
+.env.*
+!.env.example
+
+
+# ==============================
+# FastAPI / Backend
+# ==============================
+
+# Uploaded files
+backend/storage/uploads/*
+!backend/storage/uploads/.gitkeep
+
+# Generated files
+backend/logs/
+backend/tmp/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+
+# ==============================
+# Frontend
+# ==============================
+
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+frontend/.vite/
+
+# Frontend environment files
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+
+
+# ==============================
+# IDE / Editors
+# ==============================
+
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+
+# ==============================
+# OS
+# ==============================
+
+.DS_Store
+
+
+# ==============================
+# Logs
+# ==============================
+
+*.log
+
+
+# ==============================
+# Testing / Coverage
+# ==============================
+
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+
+
+# ==============================
+# Jupyter
+# ==============================
+
+.ipynb_checkpoints/
+
+
+# ==============================
+# Secrets
+# ==============================
+
+*.pem
+*.key
+credentials.json
+secrets.json
+backend/storage/video/
+# Temporary frontend work
+frontend_temp/
+
+# Simli/WebRTC smoke-test generated dependencies
+smoke_test_frontend/node_modules/
+smoke_test_frontend/dist/
+
+# Local uploaded materials
+storage/uploads/*
+!storage/uploads/.gitkeep
+
+# Simli smoke-test dependencies
+backend/static/**/node_modules/
+backend/static/**/dist/

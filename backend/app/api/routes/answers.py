@@ -1,0 +1,262 @@
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from pydantic import BaseModel
+from sqlalchemy.orm import Session
+from uuid import uuid4
+
+
+
+from app.database.connection import get_db
+from app.models.session import TeachingSession
+from app.models.concept import Concept
+from app.teacher.engine import TeacherEngine
+from app.teacher.state import TeacherState
+from app.services.learning_service import LearningService
+from app.voice.tts import TTSService
+from app.models.lesson import Lesson
+from app.rag.retriever import retrieve_relevant_chunks
+
+router = APIRouter(
+    prefix="/lessons",
+    tags=["Lessons"],
+)
+
+
+class AnswerRequest(BaseModel):
+    session_id: int
+    state: dict
+    answer: str
+
+
+teacher_engine = TeacherEngine()
+learning_service = LearningService()
+tts_service = TTSService()
+
+def extract_speech_text(teaching: str) -> str:
+    if not teaching:
+        return ""
+
+    text = teaching
+
+    if "EXPLANATION:" in text:
+        text = text.split("EXPLANATION:", 1)[1]
+
+    if "QUESTION:" in text:
+        text = text.split("QUESTION:", 1)[0]
+
+    return text.strip()
+
+@router.post("/answer")
+async def submit_answer(
+    request: AnswerRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
+
+    # 1. Load persistent teaching session
+    session = db.get(
+        TeachingSession,
+        request.session_id,
+    )
+
+    if session is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Teaching session not found",
+        )
+
+    lesson = db.get(
+        Lesson,
+        session.lesson_id,
+    )
+
+    if lesson is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Lesson not found",
+        )
+
+    # 2. Reconstruct TeacherState
+    state_data = request.state
+
+    state = TeacherState(
+        student_id=state_data["student_id"],
+        topic=state_data["topic"],
+        language=state_data.get("language", "English"),
+        current_concept=state_data["current_concept"],
+        mastery_score=state_data["mastery_score"],
+        difficulty_level=state_data["difficulty_level"],
+        teaching_strategy=state_data["teaching_strategy"],
+        current_phase=state_data["current_phase"],
+        last_question=state_data["last_question"],
+        last_answer=state_data.get("last_answer"),
+        last_evaluation=state_data.get("last_evaluation"),
+        misconceptions=state_data["misconceptions"],
+        concepts_completed=state_data["concepts_completed"],
+        concepts_struggling=state_data["concepts_struggling"],
+        needs_reteaching=state_data["needs_reteaching"],
+        attempt_count=state_data["attempt_count"],
+    )
+
+    # 3. Evaluate student's answer
+    result = teacher_engine.answer(
+        state,
+        request.answer,
+    )
+
+    evaluation = result["evaluation"]
+
+    # 4. Find current database concept
+    concept = (
+        db.query(Concept)
+        .filter(
+            Concept.lesson_id == session.lesson_id,
+            Concept.title == state.current_concept,
+        )
+        .first()
+    )
+
+    if concept is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Current concept not found",
+        )
+
+    # 5. Save attempt
+    learning_service.save_attempt(
+        db=db,
+        session=session,
+        concept=concept,
+        question=state.last_question or "",
+        student_answer=request.answer,
+        is_correct=evaluation.correctness == "correct",
+        evaluation=evaluation.feedback,
+        misconception=evaluation.misconception,
+    )
+
+    # 6. Persist mastery
+    learning_service.update_concept_mastery(
+        db=db,
+        concept=concept,
+        mastery_score=evaluation.score,
+    )
+
+    # 7. Continue teaching loop
+    teaching_context = None
+
+    if lesson.document_id is not None:
+
+        if state.needs_reteaching:
+            context_query = state.current_concept or state.topic
+
+        else:
+            next_concept = teacher_engine.graph.get_next_concept(state)
+            context_query = next_concept or state.topic
+
+        teaching_context = retrieve_relevant_chunks(
+            db=db,
+            question=context_query,
+            document_id=lesson.document_id,
+            limit=5,
+        )
+
+    next_step = teacher_engine.next_step(
+        state,
+        teaching_context=teaching_context,
+    )
+
+    audio_url = None
+
+    if next_step["teaching"]:
+
+        audio_filename = (
+            f"lesson_{session.id}_attempt_{state.attempt_count}.mp3"
+        )
+
+        speech_text = extract_speech_text(
+            next_step["teaching"]
+        )
+
+        audio_path = await tts_service.generate_speech(
+            text=speech_text,
+            language=state.language,
+            filename=audio_filename,
+        )
+
+        audio_url = f"/voice/audio/{audio_filename}"
+
+
+
+    # 8. Update persistent session
+    
+    persist_state = {
+        "current_concept": next_step["concept"] or state.current_concept,
+        "mastery_score": state.mastery_score,
+        "difficulty_level": state.difficulty_level,
+        "teaching_strategy": state.teaching_strategy,
+        "current_phase": state.current_phase,
+        "last_question": next_step["question"] or state.last_question,
+        "last_answer": state.last_answer,
+        "last_evaluation": state.last_evaluation,
+        "misconceptions": state.misconceptions,
+        "concepts_struggling": state.concepts_struggling,
+        "concepts_completed": state.concepts_completed,
+        "needs_reteaching": state.needs_reteaching,
+        "attempt_count": state.attempt_count,
+        "teaching": next_step["teaching"],
+        "visual": next_step.get("visual").model_dump() if hasattr(next_step.get("visual"), "model_dump") else (next_step.get("visual").dict() if hasattr(next_step.get("visual"), "dict") else next_step.get("visual")),
+        "audio_url": audio_url,
+    }
+
+    if next_step["action"] == "completed":
+
+        learning_service.update_session(
+            db=db,
+            session=session,
+            concept_id=None,
+            step="completed",
+            status="completed",
+            state_data=persist_state
+        )
+
+    elif next_step["concept"]:
+
+        next_concept = (
+            db.query(Concept)
+            .filter(
+                Concept.lesson_id == session.lesson_id,
+                Concept.title == next_step["concept"],
+            )
+            .first()
+        )
+
+        if next_concept:
+
+            learning_service.update_session(
+                db=db,
+                session=session,
+                concept_id=next_concept.id,
+                step="question",
+                state_data=persist_state
+            )
+    else:
+        # action == "completed" or no concept
+        learning_service.update_session(
+            db=db,
+            session=session,
+            concept_id=None,
+            step="completed" if next_step["action"] == "completed" else "question",
+            status="completed" if next_step["action"] == "completed" else "active",
+            state_data=persist_state
+        )
+
+    return {
+        "session_id": session.id,
+        "evaluation": evaluation.summary(),
+        "action": next_step["action"],
+        "concept": next_step["concept"],
+        "teaching": next_step["teaching"],
+        "question": next_step["question"],
+        "visual": next_step.get("visual"),
+        "audio_url": audio_url,
+        "state": state.summary(),
+    }
