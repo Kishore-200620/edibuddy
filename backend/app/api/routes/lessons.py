@@ -30,6 +30,9 @@ class NextStepRequest(BaseModel):
     session_id: int
     state: dict
 
+class ChangeLanguageRequest(BaseModel):
+    language: str
+
 
 teacher_engine = TeacherEngine()
 learning_service = LearningService()
@@ -271,4 +274,80 @@ def recover_session(
         "visual": state_data.get("visual"),
         "audio_url": state_data.get("audio_url"),
         "state": recovered_state,
-    }
+    }
+
+@router.get("/sessions/{student_id}")
+def get_student_sessions(
+    student_id: int,
+    db: Session = Depends(get_db),
+):
+    sessions = (
+        db.query(TeachingSession)
+        .filter(TeachingSession.student_id == student_id)
+        .order_by(TeachingSession.started_at.desc())
+        .limit(10)
+        .all()
+    )
+    
+    result = []
+    for s in sessions:
+        lesson = db.get(Lesson, s.lesson_id)
+        if not lesson:
+            continue
+        
+        concept = None
+        if s.state_data and "current_concept" in s.state_data:
+            concept = s.state_data["current_concept"]
+            
+        result.append({
+            "session_id": s.id,
+            "topic": lesson.topic,
+            "concept": concept,
+            "last_updated": s.started_at.isoformat(),
+        })
+        
+    return result
+
+@router.post("/session/{session_id}/language")
+async def change_language(
+    session_id: int,
+    request: ChangeLanguageRequest,
+    db: Session = Depends(get_db),
+):
+    session = db.get(TeachingSession, session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Teaching session not found")
+        
+    lesson = db.get(Lesson, session.lesson_id)
+    if lesson is None:
+        raise HTTPException(status_code=404, detail="Lesson not found")
+
+    state_data = session.state_data or {}
+    
+    # 1. Update language
+    lesson.language = request.language
+    db.commit()
+    
+    # 2. Translate current teaching content if it exists
+    teaching_content = state_data.get("teaching")
+    if teaching_content:
+        translated_teaching = teacher_engine.teaching.translate(teaching_content, request.language)
+        state_data["teaching"] = translated_teaching
+        
+        # 3. Generate new audio
+        speech_text = extract_speech_text(translated_teaching)
+        audio_filename = f"lesson_{session.id}_teacher_{request.language}.mp3"
+        
+        audio_path = await tts_service.generate_speech(
+            text=speech_text,
+            language=request.language,
+            filename=audio_filename,
+        )
+        
+        state_data["audio_url"] = f"/voice/audio/{audio_filename}"
+        
+        # Update session in db
+        session.state_data = state_data
+        db.commit()
+
+    return recover_session(session_id, db)

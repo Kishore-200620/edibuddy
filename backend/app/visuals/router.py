@@ -11,6 +11,10 @@ class VisualRouter:
         if not teaching:
             return None
 
+        import re
+        diagram_match = re.search(r"\[PDF Diagram available at (.*?)\]", teaching)
+        pdf_diagram_url = diagram_match.group(1).strip() if diagram_match else None
+
         # Extract the explanation
         explanation = teaching
 
@@ -38,7 +42,16 @@ class VisualRouter:
 
         text = teaching.lower()
 
-                # Code-related teaching
+        # If we explicitly extracted a PDF Diagram, prioritize it
+        if pdf_diagram_url:
+            return VisualEvent(
+                type="diagram",
+                title=concept,
+                content=content,
+                url=pdf_diagram_url,
+            )
+
+        # Code-related teaching
         # Check code BEFORE equations because code
         # commonly contains "=" for variable assignment.
         if any(

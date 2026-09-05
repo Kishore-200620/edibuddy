@@ -11,6 +11,7 @@ class VisualEvent(BaseModel):
     type: str
     content: str
     title: Optional[str] = None
+    url: Optional[str] = None
 
 
 class QuestionEvent(BaseModel):

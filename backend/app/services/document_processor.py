@@ -20,7 +20,7 @@ def process_document(
     db.commit()
 
     try:
-        text = load_document(document.file_path)
+        text = load_document(document.file_path, document.id)
 
         chunks = chunk_text(text)
 

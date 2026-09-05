@@ -66,3 +66,27 @@ QUESTION:
         response = groq_service.generate(prompt)
 
         return response
+
+    def translate(self, text: str, language: str) -> str:
+        if language.lower() == "english":
+            return text
+            
+        prompt = f"""
+You are EDUVA, a human-like AI teacher.
+
+Translate the following teaching event exactly into {language}.
+Preserve the exact format:
+EXPLANATION:
+<explanation>
+EXAMPLE:
+<example>
+QUESTION:
+<question>
+
+Also preserve any [PDF Diagram available at ...] markers exactly as they are.
+
+TEACHING EVENT TO TRANSLATE:
+{text}
+"""
+        response = groq_service.generate(prompt)
+        return response

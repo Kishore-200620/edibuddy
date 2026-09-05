@@ -1,123 +1,45 @@
-# ==============================
 # Python
-# ==============================
-
+.venv/
 __pycache__/
 *.py[cod]
-*.pyo
+.pytest_cache/
 
-# Virtual environments
-.venv/
-venv/
-env/
-ENV/
-backend/storage/audio/*
-!backend/storage/audio/.gitkeep
-
-# Python environment files
+# Environment / secrets
 .env
 .env.*
 !.env.example
 
-
-# ==============================
-# FastAPI / Backend
-# ==============================
-
-# Uploaded files
-backend/storage/uploads/*
-!backend/storage/uploads/.gitkeep
-
-# Generated files
-backend/logs/
-backend/tmp/
-
-# Database files
-*.db
-*.sqlite
-*.sqlite3
-
-
-# ==============================
-# Frontend
-# ==============================
-
+# Node
+node_modules/
 frontend/node_modules/
+
+# Frontend builds
 frontend/dist/
 frontend/build/
-frontend/.vite/
 
-# Frontend environment files
-frontend/.env
-frontend/.env.*
-!frontend/.env.example
+# Runtime uploaded/generated documents
+backend/static/documents/*
 
+# Runtime generated audio
+backend/storage/audio/*
 
-# ==============================
-# IDE / Editors
-# ==============================
+# Runtime uploads
+backend/storage/uploads/*
 
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# IDE
 .vscode/
 .idea/
-*.swp
-*.swo
 
-# Windows
-Thumbs.db
-Desktop.ini
-
-
-# ==============================
 # OS
-# ==============================
-
 .DS_Store
-
-
-# ==============================
-# Logs
-# ==============================
-
-*.log
-
-
-# ==============================
-# Testing / Coverage
-# ==============================
-
-.pytest_cache/
-.coverage
-htmlcov/
-.mypy_cache/
-
-
-# ==============================
-# Jupyter
-# ==============================
-
-.ipynb_checkpoints/
-
-
-# ==============================
-# Secrets
-# ==============================
-
-*.pem
-*.key
-credentials.json
-secrets.json
-backend/storage/video/
-# Temporary frontend work
-frontend_temp/
-
-# Simli/WebRTC smoke-test generated dependencies
-smoke_test_frontend/node_modules/
-smoke_test_frontend/dist/
-
-# Local uploaded materials
+Thumbs.db
+# Runtime uploaded PDFs
 storage/uploads/*
-!storage/uploads/.gitkeep
 
-# Simli smoke-test dependencies
-backend/static/**/node_modules/
-backend/static/**/dist/
+# Runtime generated lesson videos
+backend/storage/video/*
