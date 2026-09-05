@@ -48,6 +48,25 @@ npm run dev
 
 Open the local URL displayed by Vite.
 
+# Root Environment Variables
+
+Before running the backend or frontend, create a .env file in the project root (outside both the backend and frontend folders). This file holds the API keys shared across the project, such as Simli and Groq:
+
+powershell
+# From the project root
+New-Item .env -ItemType File
+
+Add the following keys to the root .env file:
+
+DATABASE_URL=postgresql://username:password@localhost:5432/edibuddy
+SIMLI_API_KEY=your_simli_api_key_here
+GROQ_API_KEY=your_groq_api_key_here
+DATABASE_URL — PostgreSQL connection string used by the backend (SQLAlchemy) to connect to the database. Update the username, password, host, port, and database name to match your local PostgreSQL setup.
+SIMLI_API_KEY — required for the live AI Teacher avatar (Simli WebRTC).
+GROQ_API_KEY — required for Groq-powered model inference.
+
+Make sure .env is listed in .gitignore so your keys are never committed to the repository.
+
 ## EdiBuddy Architecture
 
 The architecture diagram is stored directly inside this repository.
